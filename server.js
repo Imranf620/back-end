@@ -19,7 +19,7 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(cors({
   // origin: "http://localhost:5173",
-  origin: "http://13.40.86.150",
+  origin: process.env.BASE_URL,
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE"],

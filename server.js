@@ -18,7 +18,8 @@ app.use(upload.none());
 app.use(cookieParser());
 app.use(helmet());
 app.use(cors({
-  origin: "http://localhost:5173",
+  // origin: "http://localhost:5173",
+  origin: "http://ec2-13-40-86-150.eu-west-2.compute.amazonaws.com",
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE"],

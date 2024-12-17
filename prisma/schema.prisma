@@ -44,7 +44,13 @@ model File {
   private       Boolean
   trash         Trash[]
   fileShares    FileShare[]
+
+
+  totalDownloads       Int         @default(0)
+  totalViews           Int         @default(0) 
+  downloadsByUsers     Json?      
   
+  viewsByUsers         Json?
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -94,6 +100,18 @@ model Pricing {
   perMbpsSpeedPrice Float    @default(0.02) 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model GuestFile {
+  id            String    @id @default(uuid())
+  name          String
+  size          Int
+  type          String
+  path          String
+  visibility    Visibility @default(PUBLIC)
+  fileUrl       String    @unique  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 

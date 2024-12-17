@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { uploadFile ,getAllFiles, getVideoFiles, getImageFiles, getDocumentFiles, getOtherFiles, getLatestFiles,editFileName,deleteFile,shareFile,getSingleFile,getAllAcceessibleFiles, getAllFilesSharedByMe} from "../controllers/filesController.js";
-import upload from "../utils/multer.js";
+import { uploadFile ,getAllFiles, getVideoFiles, getImageFiles, getDocumentFiles, getOtherFiles, getLatestFiles,editFileName,deleteFile,shareFile,getSingleFile,getAllAcceessibleFiles, getAllFilesSharedByMe, viewFile, downloadFile, guestUpload, getGuestFile} from "../controllers/filesController.js";
 import { isAuthenticated } from "../middleware/auth.js";
 
 const router = Router();
@@ -18,6 +17,11 @@ router.post("/share", isAuthenticated,shareFile)
 router.get("/get/file/:fileId", isAuthenticated,getSingleFile)
 router.get("/get/shared", isAuthenticated,getAllAcceessibleFiles)
 router.get("/get/sharedByMe", isAuthenticated,getAllFilesSharedByMe)
+router.get("/view/:fileId", isAuthenticated,viewFile)
+router.get("/download/:fileId", isAuthenticated,downloadFile)
+router.post('/guest/upload', guestUpload)
+router.get('/guest/:fileId',getGuestFile )
+
 
 
 

@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-south-1',
@@ -10,7 +11,8 @@ const s3Client = new S3Client({
 });
 
 export const getPresignedUrl = async (req, res) => {
-  const userId = req.user;
+  const userId = req.user ||uuidv4();
+  
   console.log(`getPresignedUrl for user: ${userId}`);
   
   try {
@@ -23,6 +25,8 @@ export const getPresignedUrl = async (req, res) => {
     const listParams = {
       Bucket: process.env.BUCKET_NAME || 'cloudstorageimranf620.dev',
       Prefix: `uploads/user-upload/${userId}-`,
+      ACL: 'public-read',
+      
     };
 
     const listCommand = new ListObjectsV2Command(listParams);
@@ -51,6 +55,7 @@ export const getPresignedUrl = async (req, res) => {
       Bucket: process.env.BUCKET_NAME || 'cloudstorageimranf620.dev',
       Key: `uploads/user-upload/${userId}-${fileName}`,
       ContentType: fileType,
+      ACL: 'public-read',
     };
 
     const putCommand = new PutObjectCommand(uploadParams);
@@ -65,8 +70,9 @@ export const getPresignedUrl = async (req, res) => {
 
     const getCommand = new GetObjectCommand(downloadParams);
     const downloadUrl = await getSignedUrl(s3Client, getCommand);
-
-    res.status(200).json({ url:uploadUrl, downloadUrl });
+    const publicUrl = `https://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.BUCKET_NAME}/uploads/user-upload/${userId}-${fileName}`;
+   
+    res.status(200).json({ url:uploadUrl, downloadUrl, publicUrl });
 
   } catch (error) {
     console.error('Error generating presigned URL:', error);

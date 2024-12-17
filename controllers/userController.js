@@ -513,7 +513,7 @@ export const fetchMyProfile = catchAsyncError(async (req, res, next) => {
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel", // Excel files
+    "application/vnd.ms-excel", 
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/zip",
   ];
@@ -591,29 +591,6 @@ export const fetchMyProfile = catchAsyncError(async (req, res, next) => {
   apiResponse(true, `Welcome ${user.name}`, responseData, 200, res);
 });
 
-export const getAllUsers = catchAsyncError(async (req, res, next) => {
-  const users = await prisma.user.findMany();
-  apiResponse(true, "All Users", users, 200, res);
-});
-
-export const toggleActiveUser = catchAsyncError(async (req, res, next) => {
-  const { userId } = req.params;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  });
-
-  if (!user) {
-    return apiResponse(false, "User not found", null, 400, res);
-  }
-
-  const updatedUser = await prisma.user.update({
-    where: { id: userId },
-    data: { active: !user.active },
-  });
-
-  apiResponse(true, "User status toggled successfully", updatedUser, 200, res);
-});
 
 export const forgetPassword = catchAsyncError(async (req, res, next) => {
   try {

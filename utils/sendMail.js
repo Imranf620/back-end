@@ -13,6 +13,7 @@ const sendEmail = async (email, data, res) => {
 
   try {
     await sgMail.send(message);
+    console.log(`mail sent successfully from sendgrid to ${email}`);
   } catch (error) {
     console.error("Error sending email:", error.response ? error.response.body : error);
     return apiResponse(false, "Failed to send email", null, 500, res);

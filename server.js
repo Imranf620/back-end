@@ -5,7 +5,7 @@ import cron from "node-cron";
 import { deleteExpiredTrashedFiles } from "./controllers/trashCntroller.js";
 import helmet from "helmet"
 import cors from "cors"
-import path from "path";
+
 
 import multer from "multer";
 

@@ -153,6 +153,7 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
                 include: {
                     trash: true, 
                     fileShares: true, 
+                    user:true
                 },
             });
         }
@@ -175,18 +176,57 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
   });
   
 
-  export const deleteFile = catchAsyncError(async(req,res,next)=>{
-    const { fileId } = req.params;
+  // export const deleteFile = catchAsyncError(async(req,res,next)=>{
+  //   const { fileId } = req.params;
 
-    const file = await prisma.file.findFirst({
-        where: { id: fileId },
-    })
-    if (!file) {
-      return apiResponse(false, "File not found", null, 404, res);
+  //   const file = await prisma.file.findFirst({
+  //       where: { id: fileId },
+  //   })
+  //   if (!file) {
+  //     return apiResponse(false, "File not found", null, 404, res);
+  //   }
+  //   await prisma.file.delete({ where: { id: fileId } });
+  //   return apiResponse(true, "File deleted successfully", null, 200, res);
+  // })
+
+  export const deleteFile = catchAsyncError(async(req,res,next)=>{
+    const {fileIds} = req.query
+
+    
+    console.log("fileIds", fileIds)
+    if(!fileIds|| !Array.isArray(fileIds) || fileIds.length===0){
+      return apiResponse(false, "Invalid fileIds provided", null, 400, res);
     }
-    await prisma.file.delete({ where: { id: fileId } });
-    return apiResponse(true, "File deleted successfully", null, 200, res);
+
+    const filesToDelete = await prisma.file.findMany({
+      where:{
+        id: {
+          in: fileIds
+        }
+      }
+    })
+
+    if(!filesToDelete || filesToDelete.length===0){
+      return apiResponse(false, "No files found to delete", null, 404, res);
+    }
+
+    const deletedFiles = await prisma.file.deleteMany({
+      where:{
+        id: {
+          in: fileIds
+        }
+      }
+    })
+
+    if (deletedFiles.count === 0 || !deletedFiles) {
+      return apiResponse(false, "No files were deleted", null, 400, res);
+    }
+    
+    
+  return apiResponse(true, "Files deleted successfully", null, 200, res);
+
   })
+
 
   export const getTotalStorageOccupied = catchAsyncError(async (req,res,next)=>{
     const totalSize = await prisma.file.aggregate({

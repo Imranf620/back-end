@@ -23,7 +23,7 @@ router.delete("/user/:userId", isAuthenticated, authorizedAdmin, deleteUser);
 
 // router.get("/files", isAuthenticated, authorizedAdmin, getAllFiles);
 router.get("/files", isAuthenticated, authorizedAdmin,getUserFiles)
-router.delete("/file/:fileId", isAuthenticated, authorizedAdmin,deleteFile)
+router.delete("/file", isAuthenticated, authorizedAdmin,deleteFile)
 router.get("/files/total/storage", isAuthenticated, authorizedAdmin,getTotalStorageOccupied)
 
 

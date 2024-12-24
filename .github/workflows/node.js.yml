@@ -27,5 +27,5 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - run: sudo pm2 restart back-end -i max
+    - run: pm2 restart back-end -i max
 

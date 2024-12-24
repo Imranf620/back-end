@@ -1,62 +1,56 @@
-import { fileURLToPath } from "url";
+
 import catchAsyncError from "../middleware/catchAsyncErrors.js";
 import apiResponse from "../utils/apiResponse.js";
 import prisma from "../utils/prisma.js";
-import fs from 'fs';
-import path from 'path';
 import { deleteFileFromS3 } from "./s3Service.js";
 
 export const moveToTrash = catchAsyncError(async (req, res, next) => {
-  const { docId } = req.params;
+  let { fileIds } = req.query; 
   const userId = req.user;
+  console.log("fileIds", fileIds) 
 
-  // Find the file and ensure it belongs to the current user
-  const file = await prisma.file.findFirst({
+  if (!fileIds) {
+    return apiResponse(false, "File IDs are required", null, 400, res);
+  }
+
+
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return apiResponse(false, "Invalid file IDs provided", null, 400, res);
+  }
+
+  const filesToTrash = await prisma.file.findMany({
     where: {
-      id: docId,
+      id: { in: fileIds },
       userId,
     },
   });
 
-  if (!file) {
-    return apiResponse(
-      false,
-      "File not found or access denied",
-      null,
-      404,
-      res
-    );
+  if (!filesToTrash || filesToTrash.length === 0) {
+    return apiResponse(false, "No valid files found for trashing", null, 404, res);
   }
 
-  console.log("Moving file to trash, fileId:", file.id); // Log the fileId
+  const trashedFiles = [];
+  for (const file of filesToTrash) {
+    const trashedFile = await prisma.trash.create({
+      data: {
+        fileId: file.id,
+      },
+    });
+    trashedFiles.push(trashedFile);
+  }
 
-  const trashedFile = await prisma.trash.create({
-    data: {
-      fileId: file.id,
-    },
-    include: {
-      file: true,
-    },
-  });
-
-  // await prisma.file.delete({
-  //     where:{
-  //         id:file.id
-  //     }
-  // })
-
-  console.log("File moved to trash:", trashedFile); // Log the result
+  console.log("Files moved to trash:", trashedFiles); 
 
   return apiResponse(
     true,
-    "File moved to trash and deleted successfully",
-    trashedFile,
+    "Files moved to trash successfully",
+    trashedFiles,
     200,
     res
   );
 });
 
-// Retrieve trashed files
+
 export const getTrashedFiles = catchAsyncError(async (req, res, next) => {
   const userId = req.user;
   const { orderBy, orderDirection = "asc" } = req.query;

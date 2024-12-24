@@ -451,31 +451,44 @@ export const editFileName = catchAsyncError(async (req, res, next) => {
 });
 
 export const deleteFile = catchAsyncError(async (req, res, next) => {
-  const { fileId } = req.query;
+  const { fileIds } = req.query;
   const userId = req.user;
-  if (!fileId) {
-    return apiResponse(false, "File ID is required", null, 400, res);
+
+  if(!fileIds|| !Array.isArray(fileIds) || fileIds.length===0){
+    return apiResponse(false, "Invalid fileIds provided", null, 400, res);
   }
 
-  const file = await prisma.file.findFirst({
-    where: {
-      id: fileId,
-      userId,
-    },
-  });
-
-  if (!file) {
-    return apiResponse(false, "File not found", null, 404, res);
-  }
-
-  await prisma.file.delete({
-    where: {
-      id: fileId,
-    },
-  });
   
 
-  return apiResponse(true, "File deleted successfully", null, 200, res);
+  const filesToDelete = await prisma.file.findMany({
+    where:{
+      id: {
+        in: fileIds
+      },
+      userId
+    }
+  })
+
+  if(!filesToDelete || filesToDelete.length===0){
+    return apiResponse(false, "No files found to delete", null, 404, res);
+  }
+
+
+  const deletedFiles = await prisma.file.deleteMany({
+    where:{
+      id: {
+        in: fileIds
+      }
+    }
+  })
+
+  if (deletedFiles.count === 0 ) {
+    return apiResponse(false, "No files were deleted", null, 400, res);
+  }
+  
+  
+return apiResponse(true, "Files deleted successfully", null, 200, res);
+
 });
 
 export const shareFile = catchAsyncError(async (req, res, next) => {

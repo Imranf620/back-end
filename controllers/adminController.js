@@ -193,7 +193,6 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
     const {fileIds} = req.query
 
     
-    console.log("fileIds", fileIds)
     if(!fileIds|| !Array.isArray(fileIds) || fileIds.length===0){
       return apiResponse(false, "Invalid fileIds provided", null, 400, res);
     }

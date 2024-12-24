@@ -27,6 +27,7 @@ model User {
   downloadSpeed Float       @default(10)
 
   payments      Payment[] 
+  folders       Folder[] 
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -51,6 +52,9 @@ model File {
   downloadsByUsers     Json?      
   
   viewsByUsers         Json?
+
+  folderId      String?   
+  folders       Folder[] 
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -114,6 +118,18 @@ model GuestFile {
   updatedAt     DateTime  @updatedAt
 }
 
+model Folder {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Folder?   @relation("FolderParent", fields: [parentId], references: [id])
+  children  Folder[]  @relation("FolderParent")
+  files     File[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
 
 enum Visibility {
   PUBLIC

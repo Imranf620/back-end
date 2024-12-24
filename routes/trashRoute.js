@@ -9,7 +9,7 @@ import {
 import { isAuthenticated } from "../middleware/auth.js";
 
 const router = Router()
-router.post("/:docId",isAuthenticated, moveToTrash);
+router.post("/",isAuthenticated, moveToTrash);
 router.get("/",isAuthenticated, getTrashedFiles);
 router.delete("/expired",isAuthenticated, deleteExpiredTrashedFiles);
 router.post("/restore/:trashId",isAuthenticated, restoreFromTrash);

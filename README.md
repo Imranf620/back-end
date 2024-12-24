@@ -21,7 +21,7 @@ This backend application is built using **Node.js** and **Prisma ORM**. It suppo
 
 1. **Clone the Repository:**
    ```bash
-   git clone <repository_url>
+   git clone https://github.com/Imranf620/back-end
    cd backend
    ```
 

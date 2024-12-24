@@ -66,19 +66,17 @@ import sendEmail from "../utils/sendMail.js";
 //   return apiResponse(true, "File uploaded successfully", file, 200, res);
 // });
 
-
 export const uploadFile = catchAsyncError(async (req, res, next) => {
+  const { name, size: fileSize, type, path, folderId } = req.body;
 
-
-  const { name, size:fileSize, type, path } = req.body;
-
-  const size =  Number(fileSize)
+  const size = Number(fileSize);
   const userId = req.user;
 
   const user = await prisma.user.findFirst({
     where: { id: userId },
     include: {
       files: true,
+      folders: true,
     },
   });
   if (!user) {
@@ -115,6 +113,23 @@ export const uploadFile = catchAsyncError(async (req, res, next) => {
     );
   }
 
+  let folder = null;
+  if (folderId) {
+    folder = await prisma.folder.findFirst({
+      where: { id: folderId, userId },
+    });
+
+    if (!folder) {
+      return apiResponse(
+        false,
+        "Folder not found or unauthorized",
+        null,
+        404,
+        res
+      );
+    }
+  }
+
   const file = await prisma.file.create({
     data: {
       name,
@@ -123,10 +138,11 @@ export const uploadFile = catchAsyncError(async (req, res, next) => {
       path,
       userId,
       private: true,
+      folderId: folder ? folder.id : null,
     },
   });
 
-  console.log("fieleee", file)
+  console.log("fieleee", file);
 
   return apiResponse(true, "File uploaded successfully", file, 200, res);
 });
@@ -157,9 +173,7 @@ export const getAllFiles = catchAsyncError(async (req, res, next) => {
   };
 
   if (keyword) {
-    query.where.OR = [
-      { name: { contains: keyword, mode: "insensitive" } },
-    ];
+    query.where.OR = [{ name: { contains: keyword, mode: "insensitive" } }];
   }
 
   const files = await prisma.file.findMany(query);
@@ -174,7 +188,6 @@ export const getAllFiles = catchAsyncError(async (req, res, next) => {
     res
   );
 });
-
 
 export const getVideoFiles = catchAsyncError(async (req, res, next) => {
   const { orderBy, orderDirection = "asc", keyword } = req.query;
@@ -206,9 +219,7 @@ export const getVideoFiles = catchAsyncError(async (req, res, next) => {
 
   // Search functionality
   if (keyword) {
-    query.where.OR = [
-      { name: { contains: keyword, mode: "insensitive" } },
-    ];
+    query.where.OR = [{ name: { contains: keyword, mode: "insensitive" } }];
   }
 
   const videos = await prisma.file.findMany(query);
@@ -223,7 +234,6 @@ export const getVideoFiles = catchAsyncError(async (req, res, next) => {
     res
   );
 });
-
 
 export const getImageFiles = catchAsyncError(async (req, res, next) => {
   const { orderBy, orderDirection = "asc", keyword } = req.query;
@@ -255,9 +265,7 @@ export const getImageFiles = catchAsyncError(async (req, res, next) => {
 
   // Search functionality
   if (keyword) {
-    query.where.OR = [
-      { name: { contains: keyword, mode: "insensitive" } },
-    ];
+    query.where.OR = [{ name: { contains: keyword, mode: "insensitive" } }];
   }
 
   const images = await prisma.file.findMany(query);
@@ -305,9 +313,7 @@ export const getDocumentFiles = catchAsyncError(async (req, res, next) => {
   };
 
   if (keyword) {
-    query.where.OR = [
-      { name: { contains: keyword, mode: "insensitive" } },
-    ];
+    query.where.OR = [{ name: { contains: keyword, mode: "insensitive" } }];
   }
 
   const documents = await prisma.file.findMany(query);
@@ -324,7 +330,6 @@ export const getDocumentFiles = catchAsyncError(async (req, res, next) => {
     res
   );
 });
-
 
 export const getOtherFiles = catchAsyncError(async (req, res, next) => {
   const { orderBy, orderDirection = "asc", keyword } = req.query;
@@ -365,9 +370,7 @@ export const getOtherFiles = catchAsyncError(async (req, res, next) => {
   };
 
   if (keyword) {
-    query.where.OR = [
-      { name: { contains: keyword, mode: "insensitive" } },
-    ];
+    query.where.OR = [{ name: { contains: keyword, mode: "insensitive" } }];
   }
 
   const others = await prisma.file.findMany(query);
@@ -425,7 +428,8 @@ export const editFileName = catchAsyncError(async (req, res, next) => {
 
   const file = await prisma.file.findFirst({
     where: {
-      id: fileId,    },
+      id: fileId,
+    },
   });
 
   if (!file) {
@@ -454,41 +458,36 @@ export const deleteFile = catchAsyncError(async (req, res, next) => {
   const { fileIds } = req.query;
   const userId = req.user;
 
-  if(!fileIds|| !Array.isArray(fileIds) || fileIds.length===0){
+  if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
     return apiResponse(false, "Invalid fileIds provided", null, 400, res);
   }
 
-  
-
   const filesToDelete = await prisma.file.findMany({
-    where:{
+    where: {
       id: {
-        in: fileIds
+        in: fileIds,
       },
-      userId
-    }
-  })
+      userId,
+    },
+  });
 
-  if(!filesToDelete || filesToDelete.length===0){
+  if (!filesToDelete || filesToDelete.length === 0) {
     return apiResponse(false, "No files found to delete", null, 404, res);
   }
 
-
   const deletedFiles = await prisma.file.deleteMany({
-    where:{
+    where: {
       id: {
-        in: fileIds
-      }
-    }
-  })
+        in: fileIds,
+      },
+    },
+  });
 
-  if (deletedFiles.count === 0 ) {
+  if (deletedFiles.count === 0) {
     return apiResponse(false, "No files were deleted", null, 400, res);
   }
-  
-  
-return apiResponse(true, "Files deleted successfully", null, 200, res);
 
+  return apiResponse(true, "Files deleted successfully", null, 200, res);
 });
 
 export const shareFile = catchAsyncError(async (req, res, next) => {
@@ -704,10 +703,10 @@ export const getAllAcceessibleFiles = catchAsyncError(
     }
 
     const files = await prisma.file.findMany({
-      where:{
-        visibility:{
-          not:"PRIVATE"
-        }
+      where: {
+        visibility: {
+          not: "PRIVATE",
+        },
       },
       include: {
         user: true,
@@ -765,15 +764,15 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
         {
           file: {
             visibility: {
-              not: "PRIVATE"  
-            }
-          }
-        }
-      ]
+              not: "PRIVATE",
+            },
+          },
+        },
+      ],
     },
     orderBy: {
       createdAt: "desc",
-    }
+    },
   });
 
   if (!files || files.length === 0) {
@@ -782,8 +781,6 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
 
   return apiResponse(true, "Files Shared by you found", files, 200, res);
 });
-
-
 
 export const downloadFile = catchAsyncError(async (req, res, next) => {
   const { fileId } = req.params;
@@ -810,8 +807,8 @@ export const downloadFile = catchAsyncError(async (req, res, next) => {
     return apiResponse(false, "User not found", null, 404, res);
   }
 
-  if(user.role==="ADMIN"){
-    return
+  if (user.role === "ADMIN") {
+    return;
   }
 
   const downloadsByUsers = file.downloadsByUsers || {};
@@ -840,9 +837,14 @@ export const downloadFile = catchAsyncError(async (req, res, next) => {
     });
   }
 
-  return apiResponse(true, "Download record updated successfully", null, 200, res);
+  return apiResponse(
+    true,
+    "Download record updated successfully",
+    null,
+    200,
+    res
+  );
 });
-
 
 export const viewFile = catchAsyncError(async (req, res, next) => {
   const { fileId } = req.params;
@@ -856,12 +858,12 @@ export const viewFile = catchAsyncError(async (req, res, next) => {
     return apiResponse(false, "File not found", null, 404, res);
   }
 
-  const user  = await prisma.user.findFirst({
+  const user = await prisma.user.findFirst({
     where: { id: userId },
-    select: { role:true},
-  })
-  if(user.role==="ADMIN"){
-    return
+    select: { role: true },
+  });
+  if (user.role === "ADMIN") {
+    return;
   }
 
   const viewsByUsers = file.viewsByUsers || {};
@@ -881,37 +883,32 @@ export const viewFile = catchAsyncError(async (req, res, next) => {
   return apiResponse(true, "View recorded successfully", null, 200, res);
 });
 
-
-
-
-export const guestUpload= catchAsyncError(async(req,res,next)=>{
-  const {name,size,type, path}=req.body;
-
+export const guestUpload = catchAsyncError(async (req, res, next) => {
+  const { name, size, type, path } = req.body;
 
   const file = await prisma.guestFile.create({
-    data:{
+    data: {
       name,
       size,
       type,
       path,
-      fileUrl:path
-    }
+      fileUrl: path,
+    },
   });
 
-  return apiResponse(true,"File uploaded successfully",file,201,res);
-})
+  return apiResponse(true, "File uploaded successfully", file, 201, res);
+});
 
-
-export const getGuestFile= catchAsyncError(async (req,res,next)=>{
-  const {fileId}=req.params;
+export const getGuestFile = catchAsyncError(async (req, res, next) => {
+  const { fileId } = req.params;
 
   const file = await prisma.guestFile.findUnique({
-    where:{id:fileId}
+    where: { id: fileId },
   });
 
-  if(!file){
-    return apiResponse(false,"File not found",null,404,res)
+  if (!file) {
+    return apiResponse(false, "File not found", null, 404, res);
   }
 
-  return apiResponse(true,"File fetched successfully",file,200,res);
-})
+  return apiResponse(true, "File fetched successfully", file, 200, res);
+});

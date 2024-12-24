@@ -53,8 +53,8 @@ model File {
   
   viewsByUsers         Json?
 
-  folderId      String?   
-  folders       Folder[] 
+ folderId    String?  
+folder      Folder?  @relation(fields: [folderId], references: [id])
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -126,7 +126,8 @@ model Folder {
   parentId  String?
   parent    Folder?   @relation("FolderParent", fields: [parentId], references: [id])
   children  Folder[]  @relation("FolderParent")
-  files     File[]
+
+   files     File[]    
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }

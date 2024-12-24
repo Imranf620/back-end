@@ -40,25 +40,55 @@ export const updateFolder = catchAsyncError(async (req, res, next) => {
     return apiResponse(true, "Folder updated successfully", folder, 200, res);
   });
   
+ 
   export const deleteFolder = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
+    const { ids } = req.body; 
   
-    const folder = await prisma.folder.delete({
-      where: { id },
-    });
-  
-    if (!folder) {
-      return apiResponse(false, "Folder not found or not deleted", null, 404, res);
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return apiResponse(false, "No folder IDs provided", null, 400, res);
     }
   
-    return apiResponse(true, "Folder deleted successfully", folder, 200, res);
+    try {
+      const deleteFolderRecursively = async (folderId) => {
+        const folder = await prisma.folder.findUnique({
+          where: { id: folderId },
+          include: { children: true, files: true },
+        });
+  
+        if (!folder) {
+          throw new Error(`Folder with ID ${folderId} not found`);
+        }
+  
+        await prisma.file.deleteMany({
+          where: { folderId },
+        });
+  
+        for (const child of folder.children) {
+          await deleteFolderRecursively(child.id);
+        }
+  
+        await prisma.folder.delete({
+          where: { id: folderId },
+        });
+      };
+  
+      for (const folderId of ids) {
+        await deleteFolderRecursively(folderId);
+      }
+  
+      return apiResponse(true, "Folders deleted successfully", null, 200, res);
+    } catch (error) {
+      console.error("Error deleting folders:", error.message);
+      return apiResponse(false, "Error deleting folders", error.message, 500, res);
+    }
   });
+  
 
   export const getAllFolders = catchAsyncError(async (req, res, next) => {
     const userId = req.user; 
   
     const folders = await prisma.folder.findMany({
-      where: { userId },
+      where: { userId , parent:null},
       include: { children: true, files: true }, 
     });
   
@@ -72,11 +102,24 @@ export const updateFolder = catchAsyncError(async (req, res, next) => {
 
   export const getFolder = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
+    console.log("idis", id)
   
     const folder = await prisma.folder.findUnique({
       where: { id },
-      include: { children: true, files: true }, 
+      include: {
+        files:true,
+        children: {
+          include: {
+            children: { 
+              include: {
+                children: true,
+              },
+            },
+          },
+        },
+      },
     });
+    console.log("folderis", folder)
   
     if (!folder) {
       return apiResponse(false, "Folder not found", null, 404, res);

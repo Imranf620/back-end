@@ -156,59 +156,91 @@ export const restoreFromTrash = catchAsyncError(async (req, res, next) => {
 
 
 export const deleteFileFromTrash = catchAsyncError(async (req, res, next) => {
-  const { trashId } = req.params;
+  const { trashIds } = req.body; // trashIds is an array
   const userId = req.user;
 
-  const trashedEntry = await prisma.trash.findFirst({
-    where: {
-      id: trashId,
-      file: {
-        userId,
-      },
-    },
-    include: {
-      file: true,
-    },
-  });
-
-  if (!trashedEntry || !trashedEntry.file) {
-    return apiResponse(
-      false,
-      "Trashed file not found or access denied",
-      null,
-      404,
-      res
-    );
+  if (!Array.isArray(trashIds) || trashIds.length === 0) {
+    return apiResponse(false, "No trash IDs provided", null, 400, res);
   }
 
-  const filePath = trashedEntry.file.path;
-  console.log("filePath", filePath)
+  const errors = [];
+  const successes = [];
 
-  console.log("file trashed:", filePath);
+  for (const trashId of trashIds) {
+    try {
+      const trashedEntry = await prisma.trash.findFirst({
+        where: {
+          id: trashId,
+          file: {
+            userId,
+          },
+        },
+        include: {
+          file: true,
+        },
+      });
 
-  if (!filePath) {
-    return apiResponse(false, "File path not found", null, 400, res);
+      if (!trashedEntry || !trashedEntry.file) {
+        errors.push({
+          trashId,
+          message: "Trashed file not found or access denied",
+        });
+        continue;
+      }
+
+      const filePath = trashedEntry.file.path;
+
+      if (!filePath) {
+        errors.push({
+          trashId,
+          message: "File path not found",
+        });
+        continue;
+      }
+
+      try {
+        await deleteFileFromS3(filePath); // Delete file from S3
+      } catch (error) {
+        errors.push({
+          trashId,
+          message: `Failed to delete from S3: ${error.message}`,
+        });
+        continue;
+      }
+
+      // Delete entries from the database
+      await prisma.trash.delete({
+        where: {
+          id: trashId,
+        },
+      });
+
+      await prisma.file.delete({
+        where: {
+          id: trashedEntry.fileId,
+        },
+      });
+
+      successes.push({
+        trashId,
+        message: "Deleted successfully",
+      });
+    } catch (error) {
+      errors.push({
+        trashId,
+        message: `Unexpected error: ${error.message}`,
+      });
+    }
   }
 
- 
-
-  try {
-    await deleteFileFromS3(filePath); 
-  } catch (error) {
-    return apiResponse(false, error.message, null, 500, res); 
-  }
-
-  await prisma.trash.delete({
-    where: {
-      id: trashId,
+  return apiResponse(
+    true,
+    "Delete process completed",
+    {
+      successes,
+      errors,
     },
-  });
-
-  await prisma.file.delete({
-    where: {
-      id: trashedEntry.fileId,
-    },
-  });
-
-  return apiResponse(true, "Deleted successfully", null, 200, res);
+    200,
+    res
+  );
 });

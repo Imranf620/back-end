@@ -13,7 +13,7 @@ router.post("/",isAuthenticated, moveToTrash);
 router.get("/",isAuthenticated, getTrashedFiles);
 router.delete("/expired",isAuthenticated, deleteExpiredTrashedFiles);
 router.post("/restore/:trashId",isAuthenticated, restoreFromTrash);
-router.delete("/delete/:trashId",isAuthenticated, deleteFileFromTrash);
+router.delete("/delete",isAuthenticated, deleteFileFromTrash);
 
 
 export default router

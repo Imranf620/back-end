@@ -15,7 +15,7 @@ import {
 
 const router = Router();
 
-router.get("/users", isAuthenticated, authorizedAdmin, getAllUsers);
+router.get("/users", getAllUsers);
 router.get("/user/:userId", isAuthenticated, authorizedAdmin, getUserDetails);
 router.put("/user/:userId", isAuthenticated, authorizedAdmin, updateUser);
 router.post("/user/:userId/status", isAuthenticated, authorizedAdmin, toggleUserStatus);

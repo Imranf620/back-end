@@ -619,6 +619,7 @@ export const shareFile = catchAsyncError(async (req, res, next) => {
       </body>
     </html>
   `;
+  console.log("accessUrl", accessUrl);
 
     const emailPromises = emailsToAdd.map(async (email) => {
       await prisma.fileShare.create({

@@ -3,8 +3,6 @@ import apiResponse from "../utils/apiResponse.js";
 import prisma from "../utils/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import path from "path";
-import fs from "fs";
 import sendEmail from "../utils/sendMail.js";
 
 export const register = catchAsyncError(async (req, res, next) => {
@@ -150,152 +148,161 @@ export const register = catchAsyncError(async (req, res, next) => {
 });
 
 export const login = catchAsyncError(async (req, res, next) => {
-  const { email, password } = req.body;
+  try {
+  } catch (error) {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return apiResponse(
-      false,
-      "Please fill all required fields",
-      null,
-      400,
-      res
-    );
-  }
+    if (!email || !password) {
+      return apiResponse(
+        false,
+        "Please fill all required fields",
+        null,
+        400,
+        res
+      );
+    }
 
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const validateEmail = (email) => {
-    return emailRegex.test(email);
-  };
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const validateEmail = (email) => {
+      return emailRegex.test(email);
+    };
 
-  if (!validateEmail(email)) {
-    return apiResponse(
-      false,
-      "Please enter a valid email address",
-      null,
-      400,
-      res
-    );
-  }
+    if (!validateEmail(email)) {
+      return apiResponse(
+        false,
+        "Please enter a valid email address",
+        null,
+        400,
+        res
+      );
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: {
-      files: true,
-      payments: true,
-    },
-  });
-
-  if (!user) {
-    return apiResponse(false, "User not found", null, 401, res);
-  }
-
-  if (user.active === false) {
-    return apiResponse(false, "User account is deactivated", null, 401, res);
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-
-  if (!isMatch) {
-    return apiResponse(false, "Invalid credentials", null, 401, res);
-  }
-
-  const videoMimeTypes = ["video/mp4", "video/mkv", "video/avi"];
-  const imageMimeTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-  const documentMimeTypes = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel", // Excel files
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/zip",
-  ];
-
-  const videoFiles = user.files.filter((file) =>
-    videoMimeTypes.includes(file.type)
-  );
-  const imageFiles = user.files.filter((file) =>
-    imageMimeTypes.includes(file.type)
-  );
-  const documentFiles = user.files.filter((file) =>
-    documentMimeTypes.includes(file.type)
-  );
-  const otherFiles = user.files.filter(
-    (file) =>
-      ![...videoMimeTypes, ...imageMimeTypes, ...documentMimeTypes].includes(
-        file.type
-      )
-  );
-
-  const videoSize = videoFiles.reduce((total, file) => total + file.size, 0);
-  const imageSize = imageFiles.reduce((total, file) => total + file.size, 0);
-  const documentSize = documentFiles.reduce(
-    (total, file) => total + file.size,
-    0
-  );
-  const otherSize = otherFiles.reduce((total, file) => total + file.size, 0);
-
-  // Convert sizes to GB
-  const videoSizeInGB = (videoSize / 1e9).toFixed(2);
-  const imageSizeInGB = (imageSize / 1e9).toFixed(2);
-  const documentSizeInGB = (documentSize / 1e9).toFixed(2);
-  const otherSizeInGB = (otherSize / 1e9).toFixed(2);
-
-  const totalFileSize = user.files.reduce(
-    (total, file) => total + file.size,
-    0
-  );
-  const totalStorageInBytes = user.totalStorage * 1000 * 1000 * 1000;
-
-  const availableStorageInBytes =
-    totalStorageInBytes > 0 ? totalStorageInBytes - totalFileSize : 100;
-  const percentageUsed =
-    totalStorageInBytes > 0 ? (totalFileSize / totalStorageInBytes) * 100 : 100;
-
-  const currentDate = new Date();
-  const subscribedAt = new Date(user.subscribedAt);
-  const validTillFromSubsAt = user.validDays;
-
-  subscribedAt.setDate(subscribedAt.getDate() + validTillFromSubsAt);
-
-  const remainingDays = Math.max(
-    Math.ceil((subscribedAt - currentDate) / (1000 * 60 * 60 * 24)),
-    0
-  );
-
-  delete user.password;
-
-  const responseData = {
-    user,
-    totalFileSize,
-    availableStorageInBytes,
-    remainingDays,
-    totalStorageInBytes,
-    percentageUsed: percentageUsed.toFixed(2),
-    downloadSpeed: user.downloadSpeed,
-    uploadSpeed: user.uploadSpeed,
-    videoSizeInGB,
-    imageSizeInGB,
-    documentSizeInGB,
-    otherSizeInGB,
-  };
-
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_SECRET_EXPIRES,
-  });
-  res
-    .status(201)
-    .cookie("token", token, {
-      secure: process.env.NODE_ENV === "production",
-      expires: new Date(
-        Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-      ),
-      httpOnly: true,
-    })
-    .json({
-      success: true,
-      message: "Logged in successfully",
-      data: responseData,
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        files: true,
+        payments: true,
+      },
     });
+
+    if (!user) {
+      return apiResponse(false, "User not found", null, 401, res);
+    }
+
+    if (user.active === false) {
+      return apiResponse(false, "User account is deactivated", null, 401, res);
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return apiResponse(false, "Invalid credentials", null, 401, res);
+    }
+
+    const videoMimeTypes = ["video/mp4", "video/mkv", "video/avi"];
+    const imageMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+    const documentMimeTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel", // Excel files
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/zip",
+    ];
+
+    const videoFiles = user.files.filter((file) =>
+      videoMimeTypes.includes(file.type)
+    );
+    const imageFiles = user.files.filter((file) =>
+      imageMimeTypes.includes(file.type)
+    );
+    const documentFiles = user.files.filter((file) =>
+      documentMimeTypes.includes(file.type)
+    );
+    const otherFiles = user.files.filter(
+      (file) =>
+        ![...videoMimeTypes, ...imageMimeTypes, ...documentMimeTypes].includes(
+          file.type
+        )
+    );
+
+    const videoSize = videoFiles.reduce((total, file) => total + file.size, 0);
+    const imageSize = imageFiles.reduce((total, file) => total + file.size, 0);
+    const documentSize = documentFiles.reduce(
+      (total, file) => total + file.size,
+      0
+    );
+    const otherSize = otherFiles.reduce((total, file) => total + file.size, 0);
+
+    const videoSizeInGB = (videoSize / 1e9).toFixed(2);
+    const imageSizeInGB = (imageSize / 1e9).toFixed(2);
+    const documentSizeInGB = (documentSize / 1e9).toFixed(2);
+    const otherSizeInGB = (otherSize / 1e9).toFixed(2);
+
+    const totalFileSize = user.files.reduce(
+      (total, file) => total + file.size,
+      0
+    );
+    const totalStorageInBytes = user.totalStorage * 1000 * 1000 * 1000;
+
+    const availableStorageInBytes =
+      totalStorageInBytes > 0 ? totalStorageInBytes - totalFileSize : 100;
+    const percentageUsed =
+      totalStorageInBytes > 0
+        ? (totalFileSize / totalStorageInBytes) * 100
+        : 100;
+
+    const currentDate = new Date();
+    const subscribedAt = new Date(user.subscribedAt);
+    const validTillFromSubsAt = user.validDays;
+
+    subscribedAt.setDate(subscribedAt.getDate() + validTillFromSubsAt);
+
+    const remainingDays = Math.max(
+      Math.ceil((subscribedAt - currentDate) / (1000 * 60 * 60 * 24)),
+      0
+    );
+
+    delete user.password;
+
+    const responseData = {
+      user,
+      totalFileSize,
+      availableStorageInBytes,
+      remainingDays,
+      totalStorageInBytes,
+      percentageUsed: percentageUsed.toFixed(2),
+      downloadSpeed: user.downloadSpeed,
+      uploadSpeed: user.uploadSpeed,
+      videoSizeInGB,
+      imageSizeInGB,
+      documentSizeInGB,
+      otherSizeInGB,
+    };
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_SECRET_EXPIRES,
+    });
+    res
+      .status(201)
+      .cookie("token", token, {
+        secure: process.env.NODE_ENV === "production",
+        expires: new Date(
+          Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
+        ),
+        httpOnly: true,
+      })
+      .json({
+        success: true,
+        message: "Logged in successfully",
+        data: responseData,
+      });
+  }
 });
 
 export const logout = catchAsyncError(async (req, res, next) => {
@@ -401,7 +408,6 @@ export const logout = catchAsyncError(async (req, res, next) => {
 //   }
 // });
 
-
 export const updateUser = catchAsyncError(async (req, res, next) => {
   const userId = req.user;
   const { name, email, image } = req.body;
@@ -411,7 +417,13 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
     return emailRegex.test(email);
   };
   if (!validateEmail(email)) {
-    return apiResponse(false, "Please enter a valid email address", null, 400, res);
+    return apiResponse(
+      false,
+      "Please enter a valid email address",
+      null,
+      400,
+      res
+    );
   }
 
   const user = await prisma.user.findUnique({
@@ -426,9 +438,6 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
   const oldImage = user.image;
 
   if (image) {
-   
-    
-
     try {
       const updatedUser = await prisma.user.update({
         where: { id: userId },
@@ -439,10 +448,22 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
         },
       });
 
-      return apiResponse(true, "Profile updated successfully", updatedUser, 200, res);
+      return apiResponse(
+        true,
+        "Profile updated successfully",
+        updatedUser,
+        200,
+        res
+      );
     } catch (err) {
-      console.error('Error updating user profile:', err);
-      return apiResponse(false, "Failed to update user profile", null, 500, res);
+      console.error("Error updating user profile:", err);
+      return apiResponse(
+        false,
+        "Failed to update user profile",
+        null,
+        500,
+        res
+      );
     }
   } else {
     // If no image, update without changing the image
@@ -452,17 +473,25 @@ export const updateUser = catchAsyncError(async (req, res, next) => {
         data: { name, email },
       });
 
-      return apiResponse(true, "Profile updated successfully", updatedUser, 200, res);
+      return apiResponse(
+        true,
+        "Profile updated successfully",
+        updatedUser,
+        200,
+        res
+      );
     } catch (err) {
-      console.error('Error updating user profile:', err);
-      return apiResponse(false, "Failed to update user profile", null, 500, res);
+      console.error("Error updating user profile:", err);
+      return apiResponse(
+        false,
+        "Failed to update user profile",
+        null,
+        500,
+        res
+      );
     }
   }
 });
-
-
-
-
 
 export const updatePassword = catchAsyncError(async (req, res, next) => {
   const id = req.user;
@@ -513,7 +542,7 @@ export const fetchMyProfile = catchAsyncError(async (req, res, next) => {
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel", 
+    "application/vnd.ms-excel",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/zip",
   ];
@@ -591,7 +620,6 @@ export const fetchMyProfile = catchAsyncError(async (req, res, next) => {
   apiResponse(true, `Welcome ${user.name}`, responseData, 200, res);
 });
 
-
 export const forgetPassword = catchAsyncError(async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -608,8 +636,8 @@ export const forgetPassword = catchAsyncError(async (req, res, next) => {
       return apiResponse(false, "User not found", null, 400, res);
     }
 
-    const resetToken = Math.floor(Math.random() * 10000); 
-    const resetTokenExpire = new Date(Date.now() + 15 * 60 * 1000); 
+    const resetToken = Math.floor(Math.random() * 10000);
+    const resetTokenExpire = new Date(Date.now() + 15 * 60 * 1000);
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7fa; border-radius: 8px; border: 1px solid #ddd;">
@@ -623,10 +651,14 @@ export const forgetPassword = catchAsyncError(async (req, res, next) => {
       </div>
     `;
 
-    await sendEmail(email, { 
-      subject: "Reset Password",
-      html: htmlContent,
-    }, res);
+    await sendEmail(
+      email,
+      {
+        subject: "Reset Password",
+        html: htmlContent,
+      },
+      res
+    );
 
     await prisma.user.update({
       where: { id: user.id },
@@ -643,34 +675,37 @@ export const forgetPassword = catchAsyncError(async (req, res, next) => {
   }
 });
 
-
 export const resetPassword = catchAsyncError(async (req, res, next) => {
   const { resetToken: token, password, email } = req.body;
 
-  let id ;
+  let id;
 
-  const resetToken= Number(token)
+  const resetToken = Number(token);
   if (resetToken && !password) {
     const user = await prisma.user.findFirst({
       where: {
         resetToken,
         resetTokenExpire: { gt: new Date() },
-      }
+      },
     });
-
 
     if (!user) {
       return apiResponse(false, "Invalid OTP or token expired", null, 400, res);
     }
-   
 
-    return apiResponse(true, "Correct OTP. Please enter your new password", null, 200, res);
+    return apiResponse(
+      true,
+      "Correct OTP. Please enter your new password",
+      null,
+      200,
+      res
+    );
   }
 
   if (resetToken && password) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log(id)
+    console.log(id);
     const user = await prisma.user.findFirst({
       where: {
         resetToken,
@@ -682,16 +717,15 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     }
 
     await prisma.user.update({
-      where:{
+      where: {
         id: user.id,
       },
       data: {
         password: hashedPassword,
         resetToken: null,
         resetTokenExpire: null,
-      }
-
-    })
+      },
+    });
 
     return apiResponse(true, "Password updated successfully", null, 200, res);
   }

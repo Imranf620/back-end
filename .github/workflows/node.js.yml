@@ -50,5 +50,5 @@ jobs:
     - name: Run Prisma migrations
       run: npx prisma migrate deploy
       
-    #- run: pm2 restart back-end -i max
+    - run: pm2 restart back-end -i max
 

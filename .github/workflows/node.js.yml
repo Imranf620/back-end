@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -50,5 +50,5 @@ jobs:
     - name: Run Prisma migrations
       run: npx prisma migrate deploy
       
-    - run: pm2 restart back-end -i max
+    #- run: pm2 restart back-end -i max
 

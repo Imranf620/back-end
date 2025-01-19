@@ -148,8 +148,7 @@ export const register = catchAsyncError(async (req, res, next) => {
 });
 
 export const login = catchAsyncError(async (req, res, next) => {
-  try {
-  } catch (error) {
+   
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -302,7 +301,7 @@ export const login = catchAsyncError(async (req, res, next) => {
         message: "Logged in successfully",
         data: responseData,
       });
-  }
+  
 });
 
 export const logout = catchAsyncError(async (req, res, next) => {

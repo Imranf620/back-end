@@ -20,7 +20,7 @@ router.get("/get/sharedByMe", isAuthenticated,getAllFilesSharedByMe)
 router.get("/view/:fileId", isAuthenticated,viewFile)
 router.get("/download/:fileId", isAuthenticated,downloadFile)
 router.post('/guest/upload', guestUpload)
-router.get('/guest/:fileId',getGuestFile )
+router.post('/guest',getGuestFile )
 
 
 

@@ -490,13 +490,58 @@ export const deleteFile = catchAsyncError(async (req, res, next) => {
   return apiResponse(true, "Files deleted successfully", null, 200, res);
 });
 
+function generateRandomString(length = 3) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  let result = "";
+
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+}
+async function generateUniqueRandomStringForFile(prisma, length = 3) {
+  let randomString = generateRandomString(length);
+
+  let existingFile = await prisma.file.findUnique({
+    where: {
+      random: randomString,
+    },
+  });
+
+  while (existingFile) {
+    length += 1;
+    randomString = generateRandomString(length);
+    existingFile = await prisma.guestFile.findUnique({
+      where: {
+        random: randomString,
+      },
+    });
+  }
+
+  return randomString;
+}
+
 export const shareFile = catchAsyncError(async (req, res, next) => {
   const { visibility, emails, fileId } = req.body;
+  let random = await generateUniqueRandomString(prisma);
+  const generateRandomLetter = () => {
+    const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    return letters[Math.floor(Math.random() * letters.length)];
+  };
+
+
   const userId = req.user;
 
   const file = await prisma.file.findUnique({
     where: { id: fileId },
   });
+  if (file.folderId) {
+    const randomLetter = generateRandomLetter();
+    random = `${randomLetter}/${random}`;
+  }
+  console.log("random file", random);
+
 
   if (!file) {
     return apiResponse(false, "File not found", null, 404, res);
@@ -517,7 +562,11 @@ export const shareFile = catchAsyncError(async (req, res, next) => {
   const accessUrl = `${process.env.BASE_URL}/dashboard/shared/${fileId}`;
 
   if (visibility.toUpperCase() === "PUBLIC") {
-    updatedFileData = { ...updatedFileData, visibility: "PUBLIC" };
+    updatedFileData = {
+      ...updatedFileData,
+      visibility: "PUBLIC",
+      random: random,
+    };
   }
 
   const updatedFile = await prisma.file.update({
@@ -619,7 +668,7 @@ export const shareFile = catchAsyncError(async (req, res, next) => {
       </body>
     </html>
   `;
-  console.log("accessUrl", accessUrl);
+    console.log("accessUrl", accessUrl);
 
     const emailPromises = emailsToAdd.map(async (email) => {
       await prisma.fileShare.create({
@@ -672,7 +721,6 @@ export const getSingleFile = catchAsyncError(async (req, res, next) => {
   if (file.visibility === "PUBLIC") {
     return apiResponse(true, "File fetched successfully", file, 200, res);
   }
-
 
   const isAllowedToThisUser = file.fileShares.find((file) => {
     return file.email === user.email;
@@ -759,11 +807,11 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
     where: {
       userId,
       visibility: {
-        not: "PRIVATE", // Exclude private files
+        not: "PRIVATE",
       },
     },
     include: {
-      folder: true, // Include folder information
+      folder: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -776,7 +824,7 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
   }
 
   // Map the files to match the desired response format
-  const formattedFiles = files.map(file => ({
+  const formattedFiles = files.map((file) => ({
     id: file.id,
     fileId: file.id,
     userId: file.userId,
@@ -800,16 +848,24 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
       folderId: file.folderId,
       createdAt: file.createdAt,
       updatedAt: file.updatedAt,
-      folder: file.folder ? {
-        id: file.folder.id,
-        name: file.folder.name,
-        userId: file.folder.userId,
-      } : null, // Only include folder details if the file is in a folder
+      folder: file.folder
+        ? {
+            id: file.folder.id,
+            name: file.folder.name,
+            userId: file.folder.userId,
+          }
+        : null, // Only include folder details if the file is in a folder
     },
   }));
 
   // Return the formatted response
-  return apiResponse(true, "Files Shared by you found", formattedFiles, 200, res);
+  return apiResponse(
+    true,
+    "Files Shared by you found",
+    formattedFiles,
+    200,
+    res
+  );
 });
 
 export const downloadFile = catchAsyncError(async (req, res, next) => {
@@ -913,46 +969,32 @@ export const viewFile = catchAsyncError(async (req, res, next) => {
   return apiResponse(true, "View recorded successfully", null, 200, res);
 });
 
-
-function generateRandomString(length = 3) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; 
-  let result = '';
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  return result;
-}
-
 async function generateUniqueRandomString(prisma, length = 3) {
   let randomString = generateRandomString(length);
-  
+
   let existingFile = await prisma.guestFile.findUnique({
     where: {
-      random: randomString
-    }
+      random: randomString,
+    },
   });
 
   while (existingFile) {
-    length += 1;  
+    length += 1;
     randomString = generateRandomString(length);
     existingFile = await prisma.guestFile.findUnique({
       where: {
-        random: randomString
-      }
+        random: randomString,
+      },
     });
   }
 
   return randomString;
 }
 
-
 export const guestUpload = catchAsyncError(async (req, res, next) => {
   const { name, size, type, path } = req.body;
 
   const random = await generateUniqueRandomString(prisma);
-
 
   const file = await prisma.guestFile.create({
     data: {
@@ -961,7 +1003,7 @@ export const guestUpload = catchAsyncError(async (req, res, next) => {
       type,
       path,
       fileUrl: path,
-      random
+      random,
     },
   });
 
@@ -969,12 +1011,20 @@ export const guestUpload = catchAsyncError(async (req, res, next) => {
 });
 
 export const getGuestFile = catchAsyncError(async (req, res, next) => {
-  const { fileId } = req.params;
+  const { fileId } = req.body;
+  console.log("newFIle", fileId);
 
-  const file = await prisma.guestFile.findUnique({
+  let file = await prisma.guestFile.findUnique({
     where: { random: fileId },
   });
 
+  if (!file) {
+   file = await prisma.file.findUnique({
+    where:{
+      random: fileId
+    }
+   })
+  }
   if (!file) {
     return apiResponse(false, "File not found", null, 404, res);
   }

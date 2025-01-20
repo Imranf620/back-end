@@ -1,4 +1,4 @@
-const apiResponse = (success, message, data, apiStatus = 200, response) => {
+const apiResponse = (response, success, message, data = null, apiStatus = 200) => {
     return response.status(apiStatus).json({
         success,
         message,

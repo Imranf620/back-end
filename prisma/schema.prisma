@@ -39,6 +39,7 @@ model File {
   type       String
   path       String
   userId     String
+  random     String?    @unique
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   visibility Visibility  @default(PRIVATE)
   private    Boolean

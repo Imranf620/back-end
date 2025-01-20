@@ -669,6 +669,10 @@ export const getSingleFile = catchAsyncError(async (req, res, next) => {
     where: { id: userId },
     select: { id: true, name: true, email: true, image: true },
   });
+  if (file.visibility === "PUBLIC") {
+    return apiResponse(true, "File fetched successfully", file, 200, res);
+  }
+
 
   const isAllowedToThisUser = file.fileShares.find((file) => {
     return file.email === user.email;
@@ -750,37 +754,62 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
     return apiResponse(false, "User not found", null, 404, res);
   }
 
-  const files = await prisma.fileShare.findMany({
+  // Fetch files that are not private and include folder information
+  const files = await prisma.file.findMany({
     where: {
       userId,
+      visibility: {
+        not: "PRIVATE", // Exclude private files
+      },
     },
     include: {
-      file: true,
-    },
-    where: {
-      AND: [
-        {
-          userId,
-        },
-        {
-          file: {
-            visibility: {
-              not: "PRIVATE",
-            },
-          },
-        },
-      ],
+      folder: true, // Include folder information
     },
     orderBy: {
       createdAt: "desc",
     },
   });
 
+  // Check if files exist after fetching
   if (!files || files.length === 0) {
     return apiResponse(false, "No files shared by you found", null, 404, res);
   }
 
-  return apiResponse(true, "Files Shared by you found", files, 200, res);
+  // Map the files to match the desired response format
+  const formattedFiles = files.map(file => ({
+    id: file.id,
+    fileId: file.id,
+    userId: file.userId,
+    sharedAt: file.createdAt,
+    email: req.user.email, // Assuming the user's email is available
+    createdAt: file.createdAt,
+    updatedAt: file.updatedAt,
+    file: {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      path: file.path,
+      userId: file.userId,
+      visibility: file.visibility,
+      private: file.private,
+      totalDownloads: file.totalDownloads,
+      totalViews: file.totalViews,
+      downloadsByUsers: file.downloadsByUsers,
+      viewsByUsers: file.viewsByUsers,
+      folderId: file.folderId,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+      folder: file.folder ? {
+        id: file.folder.id,
+        name: file.folder.name,
+        userId: file.folder.userId,
+      } : null, // Only include folder details if the file is in a folder
+    },
+  }));
+
+  // Return the formatted response
+  return apiResponse(true, "Files Shared by you found", formattedFiles, 200, res);
 });
 
 export const downloadFile = catchAsyncError(async (req, res, next) => {
@@ -906,7 +935,7 @@ async function generateUniqueRandomString(prisma, length = 3) {
   });
 
   while (existingFile) {
-    length += 1;  // Increase the length by 1 after all combinations for the current length are exhausted
+    length += 1;  
     randomString = generateRandomString(length);
     existingFile = await prisma.guestFile.findUnique({
       where: {

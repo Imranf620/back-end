@@ -884,8 +884,46 @@ export const viewFile = catchAsyncError(async (req, res, next) => {
   return apiResponse(true, "View recorded successfully", null, 200, res);
 });
 
+
+function generateRandomString(length = 3) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; 
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+}
+
+async function generateUniqueRandomString(prisma, length = 3) {
+  let randomString = generateRandomString(length);
+  
+  let existingFile = await prisma.guestFile.findUnique({
+    where: {
+      random: randomString
+    }
+  });
+
+  while (existingFile) {
+    length += 1;  // Increase the length by 1 after all combinations for the current length are exhausted
+    randomString = generateRandomString(length);
+    existingFile = await prisma.guestFile.findUnique({
+      where: {
+        random: randomString
+      }
+    });
+  }
+
+  return randomString;
+}
+
+
 export const guestUpload = catchAsyncError(async (req, res, next) => {
   const { name, size, type, path } = req.body;
+
+  const random = await generateUniqueRandomString(prisma);
+
 
   const file = await prisma.guestFile.create({
     data: {
@@ -894,6 +932,7 @@ export const guestUpload = catchAsyncError(async (req, res, next) => {
       type,
       path,
       fileUrl: path,
+      random
     },
   });
 
@@ -904,7 +943,7 @@ export const getGuestFile = catchAsyncError(async (req, res, next) => {
   const { fileId } = req.params;
 
   const file = await prisma.guestFile.findUnique({
-    where: { id: fileId },
+    where: { random: fileId },
   });
 
   if (!file) {

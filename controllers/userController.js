@@ -506,7 +506,7 @@ export const updatePassword = catchAsyncError(async (req, res, next) => {
 
   const isPassMatched = await bcrypt.compare(oldPassword, user.password);
   if (!isPassMatched) {
-    return apiResponse(false, "Invalid credentials", null, 401, res);
+    return apiResponse(false, "Please provide a valid old password", null, 401, res);
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);

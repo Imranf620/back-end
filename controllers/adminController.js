@@ -236,3 +236,39 @@ export const getAllUsers = catchAsyncError(async (req, res, next) => {
     console.log(totalSize)
     return apiResponse(true, "Total storage occupied", totalSize, 200, res);
   })
+
+  export const getAllBinFiles = catchAsyncError(async (req, res, next) => {
+    try {
+      const { search, orderBy, orderDirection = "asc" } = req.query;
+  
+      const trashedFiles = await prisma.trash.findMany({
+        include: {
+          file: true,
+        },
+      });
+  
+      if (!trashedFiles || trashedFiles.length === 0) {
+        return apiResponse(false, "No files in bin found", null, 404, res);
+      }
+  
+      let files = trashedFiles.map((trash) => trash.file);
+  
+      if (search) {
+        const searchTerm = search.toLowerCase();
+        files = files.filter((file) => file.name.toLowerCase().includes(searchTerm));
+      }
+  
+      if (orderBy) {
+        files.sort((a, b) => {
+          if (a[orderBy] < b[orderBy]) return orderDirection === "asc" ? -1 : 1;
+          if (a[orderBy] > b[orderBy]) return orderDirection === "asc" ? 1 : -1;
+          return 0;
+        });
+      }
+  
+      return apiResponse(true, "All files in bin", files, 200, res);
+    } catch (error) {
+      next(error);
+    }
+  });
+  

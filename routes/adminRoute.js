@@ -10,6 +10,7 @@ import {
   getUserFiles,
   deleteFile,
   getTotalStorageOccupied,
+  getAllBinFiles,
 
 } from "../controllers/adminController.js";
 
@@ -25,6 +26,7 @@ router.delete("/user/:userId", isAuthenticated, authorizedAdmin, deleteUser);
 router.get("/files", isAuthenticated, authorizedAdmin,getUserFiles)
 router.delete("/file", isAuthenticated, authorizedAdmin,deleteFile)
 router.get("/files/total/storage", isAuthenticated, authorizedAdmin,getTotalStorageOccupied)
+router.get('/files/trash', isAuthenticated, authorizedAdmin, getAllBinFiles)
 
 
 

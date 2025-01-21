@@ -1031,3 +1031,5 @@ export const getGuestFile = catchAsyncError(async (req, res, next) => {
 
   return apiResponse(true, "File fetched successfully", file, 200, res);
 });
+
+

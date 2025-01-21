@@ -24,6 +24,7 @@ model User {
   totalStorage     Int         @default(10)
   uploadSpeed      Float       @default(10)
   downloadSpeed    Float       @default(10)
+  folderShares     FolderShare[] 
 
   payments Payment[]
   folders  Folder[]
@@ -82,6 +83,20 @@ model FileShare {
   @@unique([fileId, email])
 }
 
+model FolderShare {
+  id        String   @id @default(uuid())
+  folderId  String
+  userId    String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedAt  DateTime @default(now())
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([folderId, userId])
+}
+
 model Payment {
   id            String   @id @default(uuid())
   userId        String
@@ -126,6 +141,8 @@ model Folder {
   parentId String?
   parent   Folder?  @relation("FolderParent", fields: [parentId], references: [id])
   children Folder[] @relation("FolderParent")
+  sharedUsers FolderShare[]
+  visibility Visibility @default(PRIVATE)
 
   files     File[]
   createdAt DateTime @default(now())

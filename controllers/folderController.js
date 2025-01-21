@@ -144,3 +144,7 @@ export const getFolder = catchAsyncError(async (req, res, next) => {
 
   return apiResponse(true, "Folder retrieved successfully", folder, 200, res);
 });
+
+export const shareFolder = catchAsyncError(async (req,res,next)=>{
+  
+})

@@ -8,6 +8,7 @@ import { reqUserId } from "../middleware/auth.js";
 import adminRoute from "./adminRoute.js"
 import sendEmailToAddedUsers from "../utils/sendEmailToAddedUsers.js";
 import folderRoute from "./folderRoute.js"
+import socialRoute from "./socialRoute.js"
 
 
 const router = Router()
@@ -18,6 +19,7 @@ router.use("/api/v1/trash",trashRoute )
 router.use("/api/v1/payment",paymentRoute )
 router.use("/api/v1/admin",adminRoute )
 router.use("/api/v1/folders",folderRoute )
+router.use("/api/v1/social",socialRoute )
 
 
 router.post("/api/v1/pre-ass-url",reqUserId, getPresignedUrl)

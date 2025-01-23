@@ -8,23 +8,25 @@ datasource db {
 }
 
 model User {
-  id               String      @id @default(uuid())
+  id               String        @id @default(uuid())
   name             String
-  email            String      @unique
+  email            String        @unique
   password         String
   image            String?
-  role             Role        @default(USER)
+  role             Role          @default(USER)
   files            File[]
   sharedFiles      FileShare[]
-  active           Boolean     @default(true)
+  active           Boolean       @default(true)
   resetToken       Int?
   resetTokenExpire DateTime?
-  subscribedAt     DateTime    @default(now())
-  validDays        Int         @default(7)
-  totalStorage     Int         @default(10)
-  uploadSpeed      Float       @default(10)
-  downloadSpeed    Float       @default(10)
-  folderShares     FolderShare[] 
+  subscribedAt     DateTime      @default(now())
+  validDays        Int           @default(7)
+  totalStorage     Int           @default(10)
+  uploadSpeed      Float         @default(10)
+  downloadSpeed    Float         @default(10)
+  folderShares     FolderShare[]
+  video            Video[]
+  Invite           Invite[]
 
   payments Payment[]
   folders  Folder[]
@@ -40,7 +42,7 @@ model File {
   type       String
   path       String
   userId     String
-  random     String?    @unique
+  random     String?     @unique
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   visibility Visibility  @default(PRIVATE)
   private    Boolean
@@ -84,13 +86,13 @@ model FileShare {
 }
 
 model FolderShare {
-  id        String   @id @default(uuid())
-  folderId  String
-  userId    String
-  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sharedAt  DateTime @default(now())
-  
+  id       String   @id @default(uuid())
+  folderId String
+  userId   String
+  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -134,19 +136,47 @@ model GuestFile {
 }
 
 model Folder {
-  id       String   @id @default(uuid())
-  name     String
-  userId   String
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentId String?
-  parent   Folder?  @relation("FolderParent", fields: [parentId], references: [id])
-  children Folder[] @relation("FolderParent")
+  id          String        @id @default(uuid())
+  name        String
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Folder?       @relation("FolderParent", fields: [parentId], references: [id])
+  children    Folder[]      @relation("FolderParent")
   sharedUsers FolderShare[]
-  visibility Visibility @default(PRIVATE)
+  visibility  Visibility    @default(PRIVATE)
 
   files     File[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Video {
+  id          String     @id @default(uuid())
+  name        String
+  url         String
+  size        Int
+  type        String
+  random      String?      @unique 
+  uploadedBy  String
+  description String
+  user        User       @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  visibility  Visibility @default(PUBLIC)
+  invites     Invite[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  category    String
+}
+
+model Invite {
+  id        String   @id @default(uuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  inviteeId String
+  invitee   User     @relation(fields: [inviteeId], references: [id], onDelete: Cascade)
+  invitedAt DateTime @default(now())
+
+  @@unique([videoId, inviteeId])
 }
 
 enum Visibility {

@@ -4,67 +4,6 @@ import apiResponse from "../utils/apiResponse.js";
 import prisma from "../utils/prisma.js";
 import sendEmail from "../utils/sendMail.js";
 
-// export const uploadFile = catchAsyncError(async (req, res, next) => {
-//   if (!req.file) {
-//     return apiResponse(false, "No file uploaded", null, 400, res);
-//   }
-
-//   const { customName, originalname, path: filePath, size, mimetype } = req.file;
-//   const userId = req.user;
-
-//   const user = await prisma.user.findFirst({
-//     where: { id: userId },
-//     include: {
-//       files: true,
-//     },
-//   });
-//   if (!user) {
-//     return apiResponse(false, "User not found", null, 404, res);
-//   }
-//   const totalFileSize = user.files.reduce(
-//     (total, file) => total + file.size,
-//     0
-//   );
-//   const totalStorageInBytes = user.totalStorage * 1000 * 1000 * 1000;
-//   const availableStorageInBytes = totalStorageInBytes - totalFileSize;
-//   if (size > availableStorageInBytes) {
-//     return apiResponse(false, "Not enough storage", null, 413, res);
-//   }
-
-//   const calculateDaysRemaining = (subscribedAt, validDays) => {
-//     const currentDate = new Date();
-//     const subscriptionDate = new Date(subscribedAt);
-//     subscriptionDate.setDate(subscriptionDate.getDate() + validDays);
-//     return subscriptionDate > new Date();
-//   };
-
-//   const daysRemaining = calculateDaysRemaining(
-//     user.subscribedAt,
-//     user.validDays
-//   );
-//   if (!daysRemaining) {
-//     return apiResponse(
-//       false,
-//       "Your subscription has expired. Please renew your subscription.",
-//       null,
-//       401,
-//       res
-//     );
-//   }
-
-//   const file = await prisma.file.create({
-//     data: {
-//       name: originalname,
-//       size: size,
-//       type: mimetype,
-//       path: `uploads/${customName}`,
-//       userId,
-//       private: true,
-//     },
-//   });
-
-//   return apiResponse(true, "File uploaded successfully", file, 200, res);
-// });
 
 export const uploadFile = catchAsyncError(async (req, res, next) => {
   const { name, size: fileSize, type, path, folderId } = req.body;
@@ -818,12 +757,10 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
     },
   });
 
-  // Check if files exist after fetching
   if (!files || files.length === 0) {
     return apiResponse(false, "No files shared by you found", null, 404, res);
   }
 
-  // Map the files to match the desired response format
   const formattedFiles = files.map((file) => ({
     id: file.id,
     fileId: file.id,
@@ -854,7 +791,7 @@ export const getAllFilesSharedByMe = catchAsyncError(async (req, res, next) => {
             name: file.folder.name,
             userId: file.folder.userId,
           }
-        : null, // Only include folder details if the file is in a folder
+        : null, 
     },
   }));
 

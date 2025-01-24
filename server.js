@@ -7,13 +7,58 @@ import helmet from "helmet";
 import cors from "cors";
 import route from "./routes/index.js";
 import error from "./middleware/error.js";
-
-
 import multer from "multer";
+import http from "http";
+import { Server } from "socket.io";
 
 const port = process.env.PORT || 8800;
 
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.BASE_URL,
+    credentials: true,
+  },
+});
+
+
+
+let videoState = { isPlaying: false, currentTime: 0 };
+
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+  socket.emit("videoState", videoState);
+
+  socket.on("togglePlay", ({ state, currentTime }) => {
+    videoState = { isPlaying: state === "play", currentTime };
+    io.emit("videoState", videoState);
+  });
+
+
+  socket.on("voiceData", (data) => {
+    if (data.audio.length > 0) {
+      socket.broadcast.emit("receiveVoice", data); // Send to all except sender
+    }
+  });
+
+  socket.on("syncTime", (currentTime) => {
+    videoState.currentTime = currentTime;
+    io.emit("videoState", videoState);
+  });
+
+  socket.on("seekVideo", (currentTime) => {
+    videoState.currentTime = currentTime;
+    io.emit("videoState", videoState);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const upload = multer();
@@ -22,7 +67,6 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(
   cors({
-    // origin: "http://localhost:5173",
     origin: process.env.BASE_URL,
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -41,16 +85,14 @@ cron.schedule("0 0 * * *", async () => {
   }
 });
 
-// Routes
 app.use("/", route);
 
 app.get("/", (req, res) => {
   res.send("Hello from server");
 });
 
-// middleware
 app.use(error);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is listening on http://localhost:${port}`);
 });

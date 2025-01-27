@@ -23,32 +23,52 @@ const io = new Server(server, {
   },
 });
 
-
-
 let videoState = { isPlaying: false, currentTime: 0 };
+let audioCallState = { isCallStarted: false, isMuted: false };
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
+
+  //Voice
+
+  socket.emit("audioCallState", audioCallState);
+
+  // Handle the audio call start
+  socket.on("startAudioCall", () => {
+    audioCallState.isCallStarted = true;
+    io.emit("audioCallState", audioCallState);
+  });
+
+  // Handle the audio call end
+  socket.on("stopAudioCall", () => {
+    audioCallState.isCallStarted = false;
+    io.emit("audioCallState", audioCallState);
+  });
+
+  // Handle the mute toggle
+  socket.on("toggleMute", () => {
+    audioCallState.isMuted = !audioCallState.isMuted;
+    io.emit("audioCallState", audioCallState);
+  });
+
+  socket.on("offer", (data) => socket.broadcast.emit("offer", data));
+  socket.on("answer", (data) => socket.broadcast.emit("answer", data));
+  socket.on("ice-candidate", (data) =>
+    socket.broadcast.emit("ice-candidate", data)
+  );
+  //Video Setting
   socket.emit("videoState", videoState);
 
-  socket.on("togglePlay", ({ state, currentTime }) => {
-    videoState = { isPlaying: state === "play", currentTime };
+  socket.on("togglePlay", ({ state, currentTime , videoId}) => {
+    videoState = { isPlaying: state === "play", currentTime , videoId};
     io.emit("videoState", videoState);
   });
-
-
-  socket.on("voiceData", (data) => {
-    if (data.audio.length > 0) {
-      socket.broadcast.emit("receiveVoice", data); // Send to all except sender
-    }
-  });
-
   socket.on("syncTime", (currentTime) => {
     videoState.currentTime = currentTime;
     io.emit("videoState", videoState);
   });
 
-  socket.on("seekVideo", (currentTime) => {
+  socket.on("seekVideo", (currentTime, videoId) => {
     videoState.currentTime = currentTime;
     io.emit("videoState", videoState);
   });
@@ -57,7 +77,6 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
   });
 });
-
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
